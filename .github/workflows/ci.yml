@@ -51,6 +51,9 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
+    - name: Install testcontainers for integration tests
+      run: npm install -D testcontainers@latest
+    
     - name: Type check
       run: npx tsc --noEmit -p tsconfig.json
     
