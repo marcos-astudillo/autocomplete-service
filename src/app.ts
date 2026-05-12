@@ -6,6 +6,7 @@ import { errorHandler } from "./middlewares/error.middleware";
 import { rateLimiter } from "./middlewares/rateLimit.middleware";
 import suggestRoutes from "./routes/suggest.routes";
 import { initDb } from "./config/db";
+import { indexService } from "./services/index.service";
 
 const app = express();
 
@@ -27,7 +28,11 @@ app.use(errorHandler);
 
 app.listen(config.PORT, () => {
 initDb()
-  .then(() => {
+  .then(async () => {
+    indexService.initialize(7).catch((err) => {
+      logger.error("Failed to initialize suggestion index", { error: err });
+    });
+
     app.listen(config.PORT, () => {
       logger.info(
         `Autocomplete service listening on port ${config.PORT} [${config.NODE_ENV}]`,

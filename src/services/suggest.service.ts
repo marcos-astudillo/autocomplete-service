@@ -1,10 +1,10 @@
+// src/services/suggest.service.ts (versión Phase 5)
 import { SuggestQuery, SuggestResponse } from "../models/suggest";
 import { logger } from "../utils/logger";
-import { dbPool } from "../config/db";
-import { PopularityRepository } from "../repositories/popularity.repository";
 import { cacheService } from "./cache.service";
-
-const popularityRepo = new PopularityRepository(dbPool);
+import { indexService } from "./index.service";
+import { popularityRepo } from "../repositories/popularity.repository";
+import { rankingService } from "./ranking.service";
 
 const HOT_PREFIXES = [
   "a",
@@ -33,19 +33,12 @@ export class SuggestService {
       return cached;
     }
 
-    const dbSuggestions = await popularityRepo.getTopByPrefix(
-      query.prefix,
-      query.limit,
-    );
+    const trieResults = indexService.search(query.prefix, query.limit * 2);
 
     const suggestions =
-      dbSuggestions.length > 0
-        ? dbSuggestions
-        : [
-            { text: `${query.prefix}one`, score: 0.98 },
-            { text: `${query.prefix}pad`, score: 0.85 },
-            { text: `${query.prefix}mini`, score: 0.72 },
-          ];
+      trieResults.length > 0
+        ? trieResults.slice(0, query.limit)
+        : await this._fallbackToDb(query.prefix, query.limit);
 
     const result: SuggestResponse = {
       prefix: query.prefix,
@@ -56,14 +49,37 @@ export class SuggestService {
       .set(query.prefix, result, query.locale, this.isHotPrefix(query.prefix))
       .catch((err) => logger.warn("Async cache write failed", { error: err }));
 
+    this._trackQueryAsync(query.prefix);
+
     return result;
   }
 
-  async trackSearch(
-    query: string,
-    date: string = new Date().toISOString().split("T")[0],
-  ): Promise<void> {
-    await popularityRepo.incrementCount(query, date);
+  private async _fallbackToDb(
+    prefix: string,
+    limit: number,
+  ): Promise<Array<{ text: string; score: number }>> {
+    try {
+      const records = await popularityRepo.getTopByPrefixWithHistory(
+        prefix,
+        limit * 2,
+      );
+      return rankingService.rankSuggestions(records, prefix, limit);
+    } catch (err) {
+      logger.warn("DB fallback failed, returning empty suggestions", {
+        error: err,
+      });
+      return [];
+    }
+  }
+
+  private async _trackQueryAsync(query: string): Promise<void> {
+    popularityRepo
+      .incrementCount(query.toLowerCase())
+      .catch((err) =>
+        logger.debug("Async query tracking failed (non-critical)", {
+          error: err,
+        }),
+      );
   }
 }
 
