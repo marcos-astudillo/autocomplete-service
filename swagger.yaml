@@ -1,0 +1,244 @@
+openapi: 3.0.0
+info:
+  title: Autocomplete Service API
+  description: |
+    Production-ready search autocomplete backend with sub-50ms latency.
+    
+    **Features:**
+    - Cache-aside strategy with Redis
+    - In-memory Trie for O(k) prefix lookup
+    - Exponential decay ranking
+    - Adaptive rate limiting
+    - Request coalescing
+    
+    **SLOs:**
+    - p95 latency: <50ms
+    - Cache hit rate: >90% for hot prefixes
+    - Throughput: 20k QPS peak
+  version: 1.0.0
+  contact:
+    name: Marcos Astudillo
+    url: https://github.com/marcos-astudillo/autocomplete-service
+    email: m.astudillo1986@gmail.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://your-deployment-url.app
+    description: Production deployment (Railway/Render)
+
+tags:
+  - name: Autocomplete
+    description: Query suggestion endpoints
+  - name: Health
+    description: Health check and monitoring
+  - name: Observability
+    description: Metrics and monitoring
+
+paths:
+  /v1/suggest:
+    get:
+      summary: Get query suggestions
+      description: |
+        Returns top-K query suggestions for a given prefix, ranked by time-decayed popularity.
+        
+        **Caching behavior:**
+        - Cache HIT: <10ms (Redis)
+        - Trie HIT: <30ms (In-memory)
+        - DB Fallback: <50ms (PostgreSQL)
+      tags:
+        - Autocomplete
+      parameters:
+        - name: prefix
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 20
+          description: Search prefix (1-20 characters)
+          example: iph
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          description: Maximum number of suggestions to return
+          example: 10
+        - name: locale
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Language/region filter (ISO 639-1)
+          example: en
+      responses:
+        '200':
+          description: Successful response with suggestions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuggestResponse'
+              examples:
+                default:
+                  value:
+                    prefix: iph
+                    suggestions:
+                      - text: iphone 15
+                        score: 0.98
+                      - text: iphone case
+                        score: 0.85
+                      - text: iphone charger
+                        score: 0.72
+        '400':
+          description: Invalid input (empty prefix, too long, or invalid limit)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  message: Invalid prefix. Must be 1-20 characters.
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  message: Too many requests
+                  retryAfter: 10
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /health:
+    get:
+      summary: Health check
+      description: Returns service health status with infrastructure dependency checks
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+                timestamp: "2026-05-12T17:24:30.503Z"
+  
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      description: |
+        Returns metrics in Prometheus text format for observability.
+        
+        **Metrics included:**
+        - autocomplete_requests_total
+        - autocomplete_cache_hits_total
+        - autocomplete_cache_misses_total
+        - autocomplete_cache_hit_rate
+        - autocomplete_errors_total
+        - autocomplete_index_nodes
+        - autocomplete_index_suggestions
+      tags:
+        - Observability
+      responses:
+        '200':
+          description: Metrics in plain text format
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                # HELP autocomplete_requests_total Total requests received
+                # TYPE autocomplete_requests_total counter
+                autocomplete_requests_total 142
+                
+                # HELP autocomplete_cache_hit_rate Cache hit rate percentage
+                # TYPE autocomplete_cache_hit_rate gauge
+                autocomplete_cache_hit_rate 94.20
+
+components:
+  schemas:
+    SuggestResponse:
+      type: object
+      required:
+        - prefix
+        - suggestions
+      properties:
+        prefix:
+          type: string
+          description: The search prefix
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Suggestion'
+    
+    Suggestion:
+      type: object
+      required:
+        - text
+        - score
+      properties:
+        text:
+          type: string
+          description: The suggested query
+        score:
+          type: number
+          format: float
+          description: Time-decayed popularity score (0-1)
+          minimum: 0
+          maximum: 1
+    
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, error]
+          description: Overall health status
+        timestamp:
+          type: string
+          format: date-time
+          description: Check timestamp
+        checks:
+          type: object
+          description: Infrastructure dependency status
+          properties:
+            database:
+              type: string
+              enum: [up, down]
+            redis:
+              type: string
+              enum: [up, down]
+    
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+              description: Error description
+            retryAfter:
+              type: integer
+              description: Seconds to wait before retrying (for 429 responses)

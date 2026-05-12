@@ -31,3 +31,4 @@ coverage
 
 # Docker
 docker-compose.override.yml
+swagger.yaml

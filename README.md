@@ -240,6 +240,20 @@ This project implements production-oriented patterns:
 
 ---
 
+### API Documentation
+
+Interactive API documentation is available via Swagger UI:
+
+[![Swagger UI](https://img.shields.io/badge/Swagger-UI-85EA2D?style=for-the-badge&logo=swagger)](http://localhost:3000/api-docs)
+[![OpenAPI JSON](https://img.shields.io/badge/OpenAPI-JSON-blue?style=for-the-badge&logo=openapiinitiative)](http://localhost:3000/openapi.json)
+
+**Endpoints documented:**
+- `GET /v1/suggest` - Get query suggestions
+- `GET /health` - Health check
+- `GET /metrics` - Prometheus metrics
+
+---
+
 ## License
 
 This project is licensed under the MIT License.

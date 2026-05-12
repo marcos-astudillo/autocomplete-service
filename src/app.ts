@@ -10,6 +10,7 @@ import { requestCoalescer } from "./middlewares/coalesce.middleware";
 import { adaptiveRateLimiter } from "./middlewares/rateLimit.middleware";
 import { cacheHeaders } from "./middlewares/cacheHeaders.middleware";
 import metricsRouter from "./routes/metrics.routes";
+import docsRouter from './routes/docs.routes';
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use(adaptiveRateLimiter);
 app.use(cacheHeaders);
 
 app.use("/metrics", metricsRouter);
+app.use(docsRouter);
 app.use(config.API_PREFIX, suggestRoutes);
 
 app.get("/health", (_, res) => {
