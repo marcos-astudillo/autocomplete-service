@@ -16,7 +16,12 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:integration": "jest --config jest.integration.config.ts",
-    "load": "k6 run tests/load/suggest.load.ts"
+    "load": "k6 run tests/load/suggest.load.ts",
+    "docker:build": "docker build -f docker/Dockerfile -t autocomplete-service:prod .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env autocomplete-service:prod",
+    "docker:compose": "docker compose up --build",
+    "docker:compose:down": "docker compose down -v",
+    "db:migrate": "node scripts/migrate.js"
   },
   "keywords": [],
   "author": "",
