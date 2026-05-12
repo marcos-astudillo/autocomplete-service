@@ -52,7 +52,7 @@ jobs:
       run: npm ci
     
     - name: Type check
-      run: npx tsc --noEmit
+      run: npx tsc --noEmit -p tsconfig.json
     
     - name: Unit tests
       run: npm run test -- --coverage
