@@ -57,6 +57,13 @@ export class CacheService {
     }
   }
 
+  getStats(): { hitRate: string; total: number } {
+    const total = this.hitCount + this.missCount;
+    const hitRate =
+      total > 0 ? ((this.hitCount / total) * 100).toFixed(2) : "0.00";
+    return { hitRate, total };
+  }
+
   async get(prefix: string, locale?: string): Promise<SuggestResponse | null> {
     try {
       const key = this.buildKey(prefix, locale);
