@@ -19,6 +19,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.1",
     "ioredis": "^5.10.1",
@@ -27,6 +28,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/dotenv": "^6.1.1",
     "@types/express": "^5.0.6",
     "@types/ioredis": "^4.28.10",
     "@types/node": "^25.7.0",

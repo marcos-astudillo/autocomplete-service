@@ -1,13 +1,15 @@
+import 'dotenv/config';
 import express from "express";
 import { config } from "./config";
 import { logger } from "./utils/logger";
 import { errorHandler } from "./middlewares/error.middleware";
 import { rateLimiter } from "./middlewares/rateLimit.middleware";
 import suggestRoutes from "./routes/suggest.routes";
+import { initDb } from "./config/db";
 
 const app = express();
 
-app.set("trust proxy", 1); // Necesario para rate limiting correcto detrás de proxies/CDN
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(rateLimiter);
 
@@ -24,9 +26,20 @@ app.use((_req, res) => {
 app.use(errorHandler);
 
 app.listen(config.PORT, () => {
-  logger.info(
-    `Autocomplete service listening on port ${config.PORT} [${config.NODE_ENV}]`,
-  );
+initDb()
+  .then(() => {
+    app.listen(config.PORT, () => {
+      logger.info(
+        `Autocomplete service listening on port ${config.PORT} [${config.NODE_ENV}]`,
+      );
+    });
+  })
+  .catch((err) => {
+    logger.error("Failed to connect to database, shutting down", {
+      error: err,
+    });
+    process.exit(1);
+  });
 });
 
 export default app;

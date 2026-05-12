@@ -9,6 +9,7 @@ const envSchema = z.object({
   API_PREFIX: z.string().default("/v1"),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60_000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100),
+  DATABASE_URL: z.string().url(), // ← Agregado
 });
 
 export const config = envSchema.parse(process.env);
