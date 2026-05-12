@@ -32,6 +32,9 @@ end
 end 
 A->>M: increment(cache_hit|miss, latency_ms) 
 A->>P: INSERT ... ON CONFLICT UPDATE [async tracking]
+
+```
+
 Latency Notes
 | Scenario | p95 Latency | Expected Frequency |
 | HIT Cache | <10ms | >90% for hot prefixes |
