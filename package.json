@@ -21,7 +21,9 @@
     "docker:run": "docker run -p 3000:3000 --env-file .env autocomplete-service:prod",
     "docker:compose": "docker compose up --build",
     "docker:compose:down": "docker compose down -v",
-    "db:migrate": "node scripts/migrate.js"
+    "db:migrate": "node scripts/migrate.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck:tests": "tsc --noEmit -p tsconfig.test.json"
   },
   "keywords": [],
   "author": "",
